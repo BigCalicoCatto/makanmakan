@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
-import { foodList } from '@/data/foods';
-import { spiritualReminders } from '@/data/reminders';
+import { foodList } from '../../data/foods';
+import { spiritualReminders } from '../../data/reminders';
 
 const PASTEL_COLORS = {
   orange: '#F4A460',
