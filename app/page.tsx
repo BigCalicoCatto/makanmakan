@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { foodList } from '@/data/foods';
 import { spiritualReminders } from '@/data/reminders';
@@ -12,55 +12,118 @@ const PASTEL_COLORS = {
   darkText: '#8B6914',
 };
 
+interface Reminder {
+  title: string;
+  content: string;
+}
+
+// Confetti particle
+interface Confetti {
+  id: number;
+  left: number;
+  delay: number;
+  duration: number;
+  color: string;
+}
+
 export default function MakanMakanPage() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [selectedFood, setSelectedFood] = useState<string | null>(null);
-  const [selectedReminder, setSelectedReminder] = useState<string | null>(null);
+  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [confetti, setConfetti] = useState<Confetti[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
 
-  const handleRandomize = () => {
+  // Generate random selections
+  const getRandomFood = () => foodList[Math.floor(Math.random() * foodList.length)];
+  const getRandomReminder = () =>
+    spiritualReminders[Math.floor(Math.random() * spiritualReminders.length)];
+
+  // Create confetti animation
+  const createConfetti = () => {
+    const newConfetti: Confetti[] = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      delay: Math.random() * 0.2,
+      duration: 2 + Math.random() * 1,
+      color: ['#F4A460', '#FFE4B5', '#FF69B4', '#FFD700', '#98FB98'][
+        Math.floor(Math.random() * 5)
+      ],
+    }));
+    setConfetti(newConfetti);
+    setTimeout(() => setConfetti([]), 3000);
+  };
+
+  // Rolling animation effect
+  const rollAnimation = () => {
     setIsAnimating(true);
     setSelectedFood(null);
     setSelectedReminder(null);
 
-    // Simulate dice rolling animation
     const rollDuration = 600;
     const rollInterval = setInterval(() => {
-      setSelectedFood(foodList[Math.floor(Math.random() * foodList.length)]);
-      setSelectedReminder(
-        spiritualReminders[Math.floor(Math.random() * spiritualReminders.length)]
-      );
+      setSelectedFood(getRandomFood());
+      setSelectedReminder(getRandomReminder());
     }, 100);
 
     setTimeout(() => {
       clearInterval(rollInterval);
-      setSelectedFood(foodList[Math.floor(Math.random() * foodList.length)]);
-      setSelectedReminder(
-        spiritualReminders[Math.floor(Math.random() * spiritualReminders.length)]
-      );
+      setSelectedFood(getRandomFood());
+      setSelectedReminder(getRandomReminder());
       setIsAnimating(false);
     }, rollDuration);
+  };
 
+  const handleRandomize = () => {
+    rollAnimation();
     setShowWelcome(false);
+    setShowCelebration(false);
   };
 
-  const handleYes = () => {
-    setShowWelcome(true);
-    setSelectedFood(null);
-    setSelectedReminder(null);
+  const handleLike = () => {
+    createConfetti();
+    setShowCelebration(true);
   };
 
-  const handleNo = () => {
+  const handleDislike = () => {
+    handleRandomize();
+  };
+
+  const handleTryAgain = () => {
     handleRandomize();
   };
 
   return (
     <div
-      className="min-h-screen flex flex-col"
+      className="min-h-screen flex flex-col relative overflow-hidden"
       style={{ backgroundColor: PASTEL_COLORS.creamBg }}
     >
+      {/* Confetti Container */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {confetti.map((conf) => (
+          <div
+            key={conf.id}
+            className="absolute w-2 h-2 rounded-full animate-bounce"
+            style={{
+              left: `${conf.left}%`,
+              top: '-10px',
+              backgroundColor: conf.color,
+              animation: `fall ${conf.duration}s linear ${conf.delay}s forwards`,
+            }}
+          />
+        ))}
+        <style>{`
+          @keyframes fall {
+            to {
+              transform: translateY(100vh) rotate(360deg);
+              opacity: 0;
+            }
+          }
+        `}</style>
+      </div>
+
       {/* Header */}
-      <header className="flex justify-between items-center p-4 border-b-2" style={{ borderColor: PASTEL_COLORS.orange }}>
+      <header className="flex justify-between items-center p-4 border-b-2 relative z-10" style={{ borderColor: PASTEL_COLORS.orange }}>
         <h1 className="text-2xl font-bold" style={{ color: PASTEL_COLORS.orange }}>
           🐱 MAKAN MAKAN
         </h1>
@@ -74,7 +137,7 @@ export default function MakanMakanPage() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
+      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-6 relative z-10">
         {showWelcome ? (
           // Welcome Section
           <div className="w-full max-w-md">
@@ -116,7 +179,7 @@ export default function MakanMakanPage() {
 
               {/* Welcoming Message */}
               <div
-                className="rounded-2xl p-6 text-center space-y-4 text-sm leading-relaxed min-h-64 flex items-center justify-center"
+                className="rounded-2xl p-6 text-center space-y-4 text-sm leading-relaxed min-h-64 flex items-center justify-center overflow-y-auto"
                 style={{
                   backgroundColor: '#FAFAFA',
                   color: PASTEL_COLORS.darkText,
@@ -172,7 +235,7 @@ export default function MakanMakanPage() {
                 </h2>
               </div>
 
-              {/* Food Item Section */}
+              {/* Food Item Section (Makanan Jasad) */}
               <div className="space-y-4">
                 <div
                   className="rounded-2xl p-4 text-center font-semibold"
@@ -192,7 +255,7 @@ export default function MakanMakanPage() {
                   }}
                 >
                   <p
-                    className="text-2xl font-bold"
+                    className="text-xl font-bold"
                     style={{ color: PASTEL_COLORS.orange }}
                   >
                     {isAnimating ? '🍳 ...' : selectedFood}
@@ -200,7 +263,7 @@ export default function MakanMakanPage() {
                 </div>
               </div>
 
-              {/* Spiritual Reminder Section */}
+              {/* Spiritual Reminder Section (Makanan Jiwa) */}
               <div className="space-y-4">
                 <div
                   className="rounded-2xl p-4 text-center font-semibold"
@@ -212,27 +275,57 @@ export default function MakanMakanPage() {
                   Makanan Jiwa
                 </div>
                 <div
-                  className="rounded-2xl p-6 min-h-40 flex items-center justify-center"
+                  className="rounded-2xl p-6 min-h-56 flex flex-col items-center justify-center space-y-3 overflow-y-auto"
                   style={{
                     backgroundColor: '#FAFAFA',
                     borderWidth: '2px',
                     borderColor: PASTEL_COLORS.orange,
                   }}
                 >
-                  <p
-                    className="text-sm leading-relaxed text-center"
-                    style={{ color: PASTEL_COLORS.darkText }}
-                  >
-                    {isAnimating ? '✨ ...' : selectedReminder}
-                  </p>
+                  {isAnimating ? (
+                    <p
+                      className="text-lg"
+                      style={{ color: PASTEL_COLORS.orange }}
+                    >
+                      ✨ ...
+                    </p>
+                  ) : selectedReminder ? (
+                    <>
+                      <p
+                        className="font-bold text-center"
+                        style={{ color: PASTEL_COLORS.orange }}
+                      >
+                        {selectedReminder.title}
+                      </p>
+                      <p
+                        className="text-sm leading-relaxed text-center"
+                        style={{ color: PASTEL_COLORS.darkText }}
+                      >
+                        {selectedReminder.content}
+                      </p>
+                    </>
+                  ) : null}
                 </div>
               </div>
+
+              {/* Celebration Message */}
+              {showCelebration && (
+                <div
+                  className="rounded-2xl p-4 text-center font-bold animate-bounce"
+                  style={{
+                    backgroundColor: PASTEL_COLORS.lightOrange,
+                    color: PASTEL_COLORS.darkText,
+                  }}
+                >
+                  🎉 Selamat menikmati makanan yang indah! 🎉
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <button
-                    onClick={handleYes}
+                    onClick={handleLike}
                     className="py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg active:scale-95"
                     style={{ backgroundColor: PASTEL_COLORS.orange }}
                     disabled={isAnimating}
@@ -240,7 +333,7 @@ export default function MakanMakanPage() {
                     Saya Suka! ✓
                   </button>
                   <button
-                    onClick={handleNo}
+                    onClick={handleDislike}
                     className="py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg active:scale-95"
                     style={{ backgroundColor: PASTEL_COLORS.orange }}
                     disabled={isAnimating}
@@ -249,7 +342,7 @@ export default function MakanMakanPage() {
                   </button>
                 </div>
                 <button
-                  onClick={handleRandomize}
+                  onClick={handleTryAgain}
                   className="w-full py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg active:scale-95"
                   style={{ backgroundColor: PASTEL_COLORS.orange }}
                   disabled={isAnimating}
@@ -264,7 +357,7 @@ export default function MakanMakanPage() {
 
       {/* Footer */}
       <footer
-        className="text-center py-4 border-t-2 text-sm"
+        className="text-center py-4 border-t-2 text-sm relative z-10"
         style={{ borderColor: PASTEL_COLORS.orange, color: PASTEL_COLORS.darkText }}
       >
         <p className="font-semibold">Fat Calico & Co © 2026</p>
