@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Menu } from 'lucide-react';
-import { foodList } from '@/data/foods';
-import { spiritualReminders } from '@/data/reminders';
+import { useState, useEffect, useCallback } from 'react';
+import { foodList } from '../../data/foods';
+import { spiritualReminders } from '../../data/reminders';
 
-const PASTEL_COLORS = {
-  orange: '#F4A460',
-  lightOrange: '#FFE4B5',
-  creamBg: '#FFF8F0',
-  darkText: '#8B6914',
-};
+// --- Types ---
+interface Food {
+  name: string;
+  [key: string]: unknown;
+}
 
 interface Reminder {
   title: string;
   content: string;
 }
 
-// Confetti particle
 interface Confetti {
   id: number;
   left: number;
@@ -26,343 +23,400 @@ interface Confetti {
   color: string;
 }
 
-export default function MakanMakanPage() {
-  const [showWelcome, setShowWelcome] = useState(true);
-  const [selectedFood, setSelectedFood] = useState<string | null>(null);
-  const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [confetti, setConfetti] = useState<Confetti[]>([]);
-  const [showCelebration, setShowCelebration] = useState(false);
+// --- Helpers ---
+function getRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 
-  // Generate random selections
-  const getRandomFood = () => foodList[Math.floor(Math.random() * foodList.length)];
-  const getRandomReminder = () =>
-    spiritualReminders[Math.floor(Math.random() * spiritualReminders.length)];
+const CONFETTI_COLORS = ['#F4A460', '#FFE4B5', '#FF8C00', '#FFA500', '#FFD700', '#FF6347', '#98FB98', '#87CEEB'];
 
-  // Create confetti animation
-  const createConfetti = () => {
-    const newConfetti: Confetti[] = Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      delay: Math.random() * 0.2,
-      duration: 2 + Math.random() * 1,
-      color: ['#F4A460', '#FFE4B5', '#FF69B4', '#FFD700', '#98FB98'][
-        Math.floor(Math.random() * 5)
-      ],
-    }));
-    setConfetti(newConfetti);
-    setTimeout(() => setConfetti([]), 3000);
-  };
+function generateConfetti(): Confetti[] {
+  return Array.from({ length: 60 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    delay: Math.random() * 1.5,
+    duration: 2 + Math.random() * 2,
+    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+  }));
+}
 
-  // Rolling animation effect
-  const rollAnimation = () => {
-    setIsAnimating(true);
-    setSelectedFood(null);
-    setSelectedReminder(null);
+// --- Main Component ---
+export default function Home() {
+  const [phase, setPhase] = useState<'welcome' | 'result'>('welcome');
+  const [food, setFood] = useState<Food | null>(null);
+  const [reminder, setReminder] = useState<Reminder | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiPieces, setConfettiPieces] = useState<Confetti[]>([]);
+  const [isSpinning, setIsSpinning] = useState(false);
 
-    const rollDuration = 600;
-    const rollInterval = setInterval(() => {
-      setSelectedFood(getRandomFood());
-      setSelectedReminder(getRandomReminder());
-    }, 100);
-
+  const pickRandom = useCallback(() => {
+    setIsSpinning(true);
     setTimeout(() => {
-      clearInterval(rollInterval);
-      setSelectedFood(getRandomFood());
-      setSelectedReminder(getRandomReminder());
-      setIsAnimating(false);
-    }, rollDuration);
+      setFood(getRandom(foodList) as Food);
+      setReminder(getRandom(spiritualReminders) as Reminder);
+      setIsSpinning(false);
+    }, 600);
+  }, []);
+
+  const handleStart = () => {
+    pickRandom();
+    setPhase('result');
+    setShowConfetti(false);
   };
 
-  const handleRandomize = () => {
-    rollAnimation();
-    setShowWelcome(false);
-    setShowCelebration(false);
+  const handleSukaa = () => {
+    setConfettiPieces(generateConfetti());
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 3500);
   };
 
-  const handleLike = () => {
-    createConfetti();
-    setShowCelebration(true);
-  };
-
-  const handleDislike = () => {
-    handleRandomize();
-  };
-
-  const handleTryAgain = () => {
-    handleRandomize();
+  const handleReshuffle = () => {
+    setShowConfetti(false);
+    pickRandom();
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col relative overflow-hidden"
-      style={{ backgroundColor: PASTEL_COLORS.creamBg }}
-    >
-      {/* Confetti Container */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        {confetti.map((conf) => (
-          <div
-            key={conf.id}
-            className="absolute w-2 h-2 rounded-full animate-bounce"
-            style={{
-              left: `${conf.left}%`,
-              top: '-10px',
-              backgroundColor: conf.color,
-              animation: `fall ${conf.duration}s linear ${conf.delay}s forwards`,
-            }}
-          />
-        ))}
-        <style>{`
-          @keyframes fall {
-            to {
-              transform: translateY(100vh) rotate(360deg);
-              opacity: 0;
-            }
-          }
-        `}</style>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap');
 
-      {/* Header */}
-      <header className="flex justify-between items-center p-4 border-b-2 relative z-10" style={{ borderColor: PASTEL_COLORS.orange }}>
-        <h1 className="text-2xl font-bold" style={{ color: PASTEL_COLORS.orange }}>
-          🐱 MAKAN MAKAN
-        </h1>
-        <button
-          className="p-2 hover:opacity-75 transition-opacity"
-          style={{ color: PASTEL_COLORS.orange }}
-          aria-label="Menu"
-        >
-          <Menu size={24} />
-        </button>
-      </header>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-6 gap-6 relative z-10">
-        {showWelcome ? (
-          // Welcome Section
-          <div className="w-full max-w-md">
+        body {
+          background: #FFFDF7;
+          font-family: 'Nunito', sans-serif;
+          min-height: 100vh;
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          padding: 20px 16px 40px;
+        }
+
+        .card {
+          background: white;
+          border: 3px solid #F4A460;
+          border-radius: 24px;
+          width: 100%;
+          max-width: 420px;
+          padding: 28px 24px 24px;
+          position: relative;
+          box-shadow: 4px 4px 0px #F4A460;
+          min-height: 85vh;
+          display: flex;
+          flex-direction: column;
+        }
+
+        /* Title */
+        .title-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 2px;
+        }
+        .title {
+          font-family: 'Caveat', cursive;
+          font-size: 2.4rem;
+          font-weight: 700;
+          color: #F4A460;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+        }
+        .title-icon { font-size: 1.4rem; }
+        .divider {
+          height: 2px;
+          background: #F4A460;
+          border-radius: 2px;
+          margin-bottom: 6px;
+          width: 100%;
+        }
+        .tagline {
+          font-family: 'Caveat', cursive;
+          font-size: 1.05rem;
+          color: #8B6914;
+          margin-bottom: 20px;
+        }
+
+        /* Welcome box */
+        .welcome-box {
+          background: repeating-linear-gradient(
+            -45deg,
+            #FFF8E1,
+            #FFF8E1 8px,
+            #FFFDF7 8px,
+            #FFFDF7 16px
+          );
+          border: 2px solid #F4A460;
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 20px;
+          flex: 1;
+        }
+        .welcome-text {
+          font-size: 0.92rem;
+          color: #5C4A1A;
+          line-height: 1.75;
+        }
+        .welcome-text p { margin-bottom: 12px; }
+        .welcome-text p:last-child { margin-bottom: 0; }
+        .welcome-bold {
+          font-family: 'Caveat', cursive;
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #F4A460;
+          display: block;
+          margin-top: 4px;
+        }
+
+        /* CTA button */
+        .cta-btn {
+          background: #F4A460;
+          color: white;
+          border: none;
+          border-radius: 50px;
+          padding: 14px 28px;
+          font-family: 'Caveat', cursive;
+          font-size: 1.3rem;
+          font-weight: 700;
+          cursor: pointer;
+          width: 100%;
+          transition: transform 0.15s, box-shadow 0.15s;
+          box-shadow: 3px 3px 0px #C17800;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+        .cta-btn:hover { transform: translateY(-2px); box-shadow: 4px 5px 0px #C17800; }
+        .cta-btn:active { transform: translateY(1px); box-shadow: 1px 1px 0px #C17800; }
+
+        /* Result phase */
+        .food-box {
+          border: 2.5px solid #F4A460;
+          border-radius: 16px;
+          padding: 18px 16px;
+          text-align: center;
+          margin-bottom: 16px;
+          min-height: 70px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: opacity 0.3s;
+        }
+        .food-box.spinning { opacity: 0.4; }
+        .food-name {
+          font-family: 'Caveat', cursive;
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #8B6914;
+        }
+
+        .btn-row {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 10px;
+          flex-wrap: wrap;
+        }
+        .btn-suka {
+          background: #F4A460;
+          color: white;
+          border: 2px solid #F4A460;
+          border-radius: 50px;
+          padding: 10px 20px;
+          font-family: 'Caveat', cursive;
+          font-size: 1.1rem;
+          font-weight: 700;
+          cursor: pointer;
+          flex: 1;
+          transition: transform 0.15s, box-shadow 0.15s;
+          box-shadow: 2px 2px 0 #C17800;
+        }
+        .btn-suka:hover { transform: translateY(-1px); }
+        .btn-suka:active { transform: translateY(1px); }
+
+        .btn-outline {
+          background: white;
+          color: #F4A460;
+          border: 2.5px solid #F4A460;
+          border-radius: 50px;
+          padding: 10px 20px;
+          font-family: 'Caveat', cursive;
+          font-size: 1.1rem;
+          font-weight: 700;
+          cursor: pointer;
+          flex: 1;
+          transition: transform 0.15s;
+          box-shadow: 2px 2px 0 #FFE4B5;
+        }
+        .btn-outline:hover { transform: translateY(-1px); background: #FFF8E1; }
+        .btn-outline:active { transform: translateY(1px); }
+
+        .btn-cuba {
+          display: block;
+          width: 100%;
+          background: white;
+          color: #F4A460;
+          border: 2.5px dashed #F4A460;
+          border-radius: 50px;
+          padding: 10px 20px;
+          font-family: 'Caveat', cursive;
+          font-size: 1.1rem;
+          font-weight: 700;
+          cursor: pointer;
+          margin-bottom: 16px;
+          transition: transform 0.15s, background 0.15s;
+        }
+        .btn-cuba:hover { background: #FFF8E1; transform: translateY(-1px); }
+
+        /* Nasihat box */
+        .nasihat-box {
+          border: 2px solid #F4A460;
+          border-radius: 16px;
+          padding: 18px 16px;
+          flex: 1;
+          background: #FFFDF7;
+          transition: opacity 0.3s;
+          position: relative;
+          min-height: 120px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .nasihat-box.spinning { opacity: 0.3; }
+        .nasihat-title {
+          font-family: 'Caveat', cursive;
+          font-size: 1.15rem;
+          font-weight: 700;
+          color: #F4A460;
+          margin-bottom: 8px;
+        }
+        .nasihat-content {
+          font-size: 0.88rem;
+          color: #5C4A1A;
+          line-height: 1.7;
+          font-style: italic;
+        }
+
+        /* Footer */
+        .footer {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 6px;
+          margin-top: 14px;
+          font-family: 'Caveat', cursive;
+          font-size: 0.85rem;
+          color: #C4A47C;
+        }
+        .footer-cat { font-size: 1.1rem; }
+
+        /* Confetti */
+        .confetti-container {
+          position: fixed;
+          top: 0; left: 0; right: 0;
+          height: 100vh;
+          pointer-events: none;
+          z-index: 999;
+          overflow: hidden;
+        }
+        .confetti-piece {
+          position: absolute;
+          top: -12px;
+          width: 10px;
+          height: 10px;
+          border-radius: 2px;
+          animation: fall linear forwards;
+        }
+        @keyframes fall {
+          0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+          80%  { opacity: 1; }
+          100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+        }
+
+        @keyframes spin-in {
+          0%   { transform: scale(0.85) rotate(-2deg); opacity: 0; }
+          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .animate-in { animation: spin-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+      `}</style>
+
+      {/* Confetti */}
+      {showConfetti && (
+        <div className="confetti-container">
+          {confettiPieces.map((c) => (
             <div
-              className="rounded-3xl p-8 shadow-lg border-4 flex flex-col gap-6"
+              key={c.id}
+              className="confetti-piece"
               style={{
-                borderColor: PASTEL_COLORS.orange,
-                backgroundColor: 'white',
+                left: `${c.left}%`,
+                animationDelay: `${c.delay}s`,
+                animationDuration: `${c.duration}s`,
+                background: c.color,
               }}
-            >
-              {/* Main Title */}
-              <div className="text-center">
-                <h2
-                  className="text-4xl font-bold mb-2"
-                  style={{ color: PASTEL_COLORS.orange }}
-                >
-                  🐱 MAKAN MAKAN
-                </h2>
-                <p
-                  className="text-lg font-semibold"
-                  style={{ color: PASTEL_COLORS.orange }}
-                >
-                  Makanan jasad & makanan jiwa
-                </p>
-              </div>
+            />
+          ))}
+        </div>
+      )}
 
-              {/* Tagline Box */}
-              <div
-                className="rounded-2xl p-4 text-center"
-                style={{
-                  backgroundColor: PASTEL_COLORS.lightOrange,
-                  color: PASTEL_COLORS.darkText,
-                }}
-              >
-                <p className="font-semibold text-sm">
-                  🚫 TOLONG! Saya tak tahu nak makan apa
-                </p>
-              </div>
+      <div className="card">
+        {/* Header — always visible */}
+        <div className="title-row">
+          <span className="title-icon">🍊</span>
+          <span className="title">Makan Makan</span>
+          <span className="title-icon">🐾</span>
+        </div>
+        <div className="divider" />
+        <div className="tagline">Makanan jasad &amp; makanan jiwa</div>
 
-              {/* Welcoming Message */}
-              <div
-                className="rounded-2xl p-6 text-center space-y-4 text-sm leading-relaxed min-h-64 flex items-center justify-center overflow-y-auto"
-                style={{
-                  backgroundColor: '#FAFAFA',
-                  color: PASTEL_COLORS.darkText,
-                  borderWidth: '2px',
-                  borderColor: PASTEL_COLORS.orange,
-                }}
-              >
-                <div className="space-y-4">
-                  <p>
-                    MakanMakan diciptakan bukan sekadar untuk mengisi perut yang lapar, tetapi untuk menyuburkan jiwa yang rindu ketenangan.
-                  </p>
-                  <p>
-                    Setiap kali anda menekan butang di atas, anda tidak hanya mendapat cadangan hidangan lazat, tetapi juga sebuah hadiah kecil dari langit, sebuah ingatan manis untuk tersenyum, bersyukur, dan kembali ingat bahawa kita hidup hanya untuk mencintai Dia.
-                  </p>
-                  <p>
-                    Jangan risau tentang rezeki, jangan bandingkan pilihan orang lain. Apa yang terpilih untuk anda hari ini adalah yang terbaik. Tarik nafas, lepaskan beban, dan mari kita makan dengan niat ibadah.
-                  </p>
-                  <p className="font-semibold pt-4">
-                    Makanan Jasad & Makanan Jiwa.
-                    <br />
-                    Kenyang perut, tenang hati.
-                  </p>
-                </div>
+        {phase === 'welcome' && (
+          <>
+            <div className="welcome-box">
+              <div className="welcome-text">
+                <p>MakanMakan diciptakan bukan sekadar untuk mengisi perut yang lapar, tetapi untuk menyuburkan jiwa yang rindu ketenangan.</p>
+                <p>Setiap kali anda menekan butang di atas, anda tidak hanya mendapat cadangan hidangan lazat, tetapi juga sebuah hadiah kecil dari langit — sebuah ingatan manis untuk tersenyum, bersyukur, dan kembali ingat bahawa kita hidup hanya untuk mencintai Dia.</p>
+                <p>Jangan risau tentang rezeki, jangan bandingkan pilihan orang lain. Apa yang terpilih untuk anda hari ini adalah yang terbaik. Tarik nafas, lepaskan beban, dan mari kita makan dengan niat ibadah.</p>
+                <span className="welcome-bold">Makanan Jasad &amp; Makanan Jiwa.<br />Kenyang perut, tenang hati. 🌸</span>
               </div>
-
-              {/* CTA Button */}
-              <button
-                onClick={handleRandomize}
-                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-all hover:shadow-lg active:scale-95"
-                style={{ backgroundColor: PASTEL_COLORS.orange }}
-              >
-                ✨ Mari kita makan
-              </button>
             </div>
-          </div>
-        ) : (
-          // Results Section
-          <div className="w-full max-w-md">
-            <div
-              className="rounded-3xl p-8 shadow-lg border-4 flex flex-col gap-6"
-              style={{
-                borderColor: PASTEL_COLORS.orange,
-                backgroundColor: 'white',
-              }}
-            >
-              {/* Header */}
-              <div className="text-center">
-                <h2
-                  className="text-4xl font-bold"
-                  style={{ color: PASTEL_COLORS.orange }}
-                >
-                  🐱 MAKAN MAKAN
-                </h2>
-              </div>
 
-              {/* Food Item Section (Makanan Jasad) */}
-              <div className="space-y-4">
-                <div
-                  className="rounded-2xl p-4 text-center font-semibold"
-                  style={{
-                    backgroundColor: PASTEL_COLORS.lightOrange,
-                    color: PASTEL_COLORS.darkText,
-                  }}
-                >
-                  Makanan Jasad
-                </div>
-                <div
-                  className="rounded-2xl p-6 min-h-24 flex items-center justify-center text-center"
-                  style={{
-                    backgroundColor: '#FAFAFA',
-                    borderWidth: '2px',
-                    borderColor: PASTEL_COLORS.orange,
-                  }}
-                >
-                  <p
-                    className="text-xl font-bold"
-                    style={{ color: PASTEL_COLORS.orange }}
-                  >
-                    {isAnimating ? '🍳 ...' : selectedFood}
-                  </p>
-                </div>
-              </div>
+            <button className="cta-btn" onClick={handleStart}>
+              🍽️ TOLONG! Saya tak tahu nak makan apa
+            </button>
+          </>
+        )}
 
-              {/* Spiritual Reminder Section (Makanan Jiwa) */}
-              <div className="space-y-4">
-                <div
-                  className="rounded-2xl p-4 text-center font-semibold"
-                  style={{
-                    backgroundColor: PASTEL_COLORS.lightOrange,
-                    color: PASTEL_COLORS.darkText,
-                  }}
-                >
-                  Makanan Jiwa
-                </div>
-                <div
-                  className="rounded-2xl p-6 min-h-56 flex flex-col items-center justify-center space-y-3 overflow-y-auto"
-                  style={{
-                    backgroundColor: '#FAFAFA',
-                    borderWidth: '2px',
-                    borderColor: PASTEL_COLORS.orange,
-                  }}
-                >
-                  {isAnimating ? (
-                    <p
-                      className="text-lg"
-                      style={{ color: PASTEL_COLORS.orange }}
-                    >
-                      ✨ ...
-                    </p>
-                  ) : selectedReminder ? (
-                    <>
-                      <p
-                        className="font-bold text-center"
-                        style={{ color: PASTEL_COLORS.orange }}
-                      >
-                        {selectedReminder.title}
-                      </p>
-                      <p
-                        className="text-sm leading-relaxed text-center"
-                        style={{ color: PASTEL_COLORS.darkText }}
-                      >
-                        {selectedReminder.content}
-                      </p>
-                    </>
-                  ) : null}
-                </div>
-              </div>
+        {phase === 'result' && (
+          <>
+            <div className={`food-box ${isSpinning ? 'spinning' : 'animate-in'}`}>
+              <span className="food-name">
+                {isSpinning ? '...' : (food as { name?: string })?.name ?? String(food)}
+              </span>
+            </div>
 
-              {/* Celebration Message */}
-              {showCelebration && (
-                <div
-                  className="rounded-2xl p-4 text-center font-bold animate-bounce"
-                  style={{
-                    backgroundColor: PASTEL_COLORS.lightOrange,
-                    color: PASTEL_COLORS.darkText,
-                  }}
-                >
-                  🎉 Selamat menikmati makanan yang indah! 🎉
+            <div className="btn-row">
+              <button className="btn-suka" onClick={handleSukaa}>Saya Suka! 🎉</button>
+              <button className="btn-outline" onClick={handleReshuffle}>Tak Suka! 😅</button>
+            </div>
+            <button className="btn-cuba" onClick={handleReshuffle}>Cuba lagi! 🔄</button>
+
+            <div className={`nasihat-box ${isSpinning ? 'spinning' : 'animate-in'}`}>
+              {reminder && !isSpinning && (
+                <>
+                  <div className="nasihat-title">✨ {reminder.title}</div>
+                  <div className="nasihat-content">{reminder.content}</div>
+                </>
+              )}
+              {isSpinning && (
+                <div className="nasihat-content" style={{ textAlign: 'center', color: '#F4A460' }}>
+                  Sedang mencari nasihat... 🌙
                 </div>
               )}
-
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={handleLike}
-                    className="py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg active:scale-95"
-                    style={{ backgroundColor: PASTEL_COLORS.orange }}
-                    disabled={isAnimating}
-                  >
-                    Saya Suka! ✓
-                  </button>
-                  <button
-                    onClick={handleDislike}
-                    className="py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg active:scale-95"
-                    style={{ backgroundColor: PASTEL_COLORS.orange }}
-                    disabled={isAnimating}
-                  >
-                    Tak Suka! ✗
-                  </button>
-                </div>
-                <button
-                  onClick={handleTryAgain}
-                  className="w-full py-3 rounded-xl font-bold text-white transition-all hover:shadow-lg active:scale-95"
-                  style={{ backgroundColor: PASTEL_COLORS.orange }}
-                  disabled={isAnimating}
-                >
-                  🎲 Cuba lagi!
-                </button>
-              </div>
             </div>
-          </div>
+          </>
         )}
-      </main>
 
-      {/* Footer */}
-      <footer
-        className="text-center py-4 border-t-2 text-sm relative z-10"
-        style={{ borderColor: PASTEL_COLORS.orange, color: PASTEL_COLORS.darkText }}
-      >
-        <p className="font-semibold">Fat Calico & Co © 2026</p>
-        <p>Engineered by Fat Calico & Co for Fat Calico & Co</p>
-      </footer>
-    </div>
+        <div className="footer">
+          <span className="footer-cat">🐱</span>
+          <span>Fat Calico &amp; Co</span>
+        </div>
+      </div>
+    </>
   );
 }
