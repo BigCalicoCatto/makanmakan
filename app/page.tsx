@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { foodList } from '../../data/foods';
-import { spiritualReminders } from '../../data/reminders';
+import { useState, useCallback } from 'react';
+import { foodList } from '../data/foods';
+import { spiritualReminders } from '../data/reminders';
 
 // --- Types ---
 interface Food {
@@ -386,7 +386,7 @@ export default function Home() {
           <>
             <div className={`food-box ${isSpinning ? 'spinning' : 'animate-in'}`}>
               <span className="food-name">
-                {isSpinning ? '...' : (food as { name?: string })?.name ?? String(food)}
+                {isSpinning ? '...' : food?.name ?? ''}
               </span>
             </div>
 
