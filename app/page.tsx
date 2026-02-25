@@ -5,11 +5,6 @@ import { foodList } from '../data/foods';
 import { spiritualReminders } from '../data/reminders';
 
 // --- Types ---
-interface Food {
-  name: string;
-  [key: string]: unknown;
-}
-
 interface Reminder {
   title: string;
   content: string;
@@ -43,7 +38,7 @@ function generateConfetti(): Confetti[] {
 // --- Main Component ---
 export default function Home() {
   const [phase, setPhase] = useState<'welcome' | 'result'>('welcome');
-  const [food, setFood] = useState<Food | null>(null);
+  const [food, setFood] = useState<string | null>(null);
   const [reminder, setReminder] = useState<Reminder | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<Confetti[]>([]);
@@ -52,8 +47,8 @@ export default function Home() {
   const pickRandom = useCallback(() => {
     setIsSpinning(true);
     setTimeout(() => {
-      setFood(getRandom(foodList) as Food);
-      setReminder(getRandom(spiritualReminders) as Reminder);
+      setFood(getRandom(foodList) as unknown as string);
+      setReminder(getRandom(spiritualReminders) as unknown as Reminder);
       setIsSpinning(false);
     }, 600);
   }, []);
@@ -386,7 +381,7 @@ export default function Home() {
           <>
             <div className={`food-box ${isSpinning ? 'spinning' : 'animate-in'}`}>
               <span className="food-name">
-                {isSpinning ? '...' : food?.name ?? ''}
+                {isSpinning ? '...' : food ?? ''}
               </span>
             </div>
 
