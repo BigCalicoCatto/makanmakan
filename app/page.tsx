@@ -37,12 +37,13 @@ function generateConfetti(): Confetti[] {
 
 // --- Main Component ---
 export default function Home() {
-  const [phase, setPhase] = useState<'welcome' | 'result'>('welcome');
+  const [phase, setPhase] = useState<'welcome' | 'thinking' | 'result'>('welcome');
   const [food, setFood] = useState<string | null>(null);
   const [reminder, setReminder] = useState<Reminder | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiPieces, setConfettiPieces] = useState<Confetti[]>([]);
   const [isSpinning, setIsSpinning] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const pickRandom = useCallback(() => {
     setIsSpinning(true);
@@ -54,9 +55,14 @@ export default function Home() {
   }, []);
 
   const handleStart = () => {
-    pickRandom();
-    setPhase('result');
+    setPhase('thinking');
     setShowConfetti(false);
+    // Show thinking screen for 2.5s then reveal result
+    setTimeout(() => {
+      setFood(getRandom(foodList) as unknown as string);
+      setReminder(getRandom(spiritualReminders) as unknown as Reminder);
+      setPhase('result');
+    }, 2500);
   };
 
   const handleSukaa = () => {
@@ -67,240 +73,499 @@ export default function Home() {
 
   const handleReshuffle = () => {
     setShowConfetti(false);
-    pickRandom();
+    setPhase('thinking');
+    setTimeout(() => {
+      setFood(getRandom(foodList) as unknown as string);
+      setReminder(getRandom(spiritualReminders) as unknown as Reminder);
+      setPhase('result');
+    }, 2500);
   };
 
   return (
     <>
+      {/* Preload all images */}
+      <link rel="preload" as="image" href="/welcome.webp" />
+      <link rel="preload" as="image" href="/thinking.webp" />
+      <link rel="preload" as="image" href="/result.webp" />
+
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Caveat:wght@600;700&display=swap');
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-          background: #FFFDF7;
-          font-family: 'Nunito', sans-serif;
-          min-height: 100vh;
-          display: flex;
-          justify-content: center;
-          align-items: flex-start;
-          padding: 20px 16px 40px;
+        :root {
+          --gold: #D4A017;
+          --gold-light: #F5D080;
+          --gold-glow: rgba(212, 160, 23, 0.5);
+          --cream: #FDF6E3;
+          --dark: #1A1008;
+          --warm-brown: #5C3A1E;
+          --overlay-dark: rgba(15, 8, 2, 0.55);
+          --overlay-light: rgba(253, 246, 227, 0.82);
+          --overlay-gold: rgba(212, 160, 23, 0.12);
         }
 
-        .card {
-          background: white;
-          border: 3px solid #F4A460;
-          border-radius: 24px;
+        html, body {
+          height: 100%;
           width: 100%;
-          max-width: 420px;
-          padding: 28px 24px 24px;
-          position: relative;
-          box-shadow: 4px 4px 0px #F4A460;
-          min-height: 85vh;
+          overflow: hidden;
+          font-family: 'Lora', serif;
+          background: #0f0802;
+        }
+
+        /* ===== FULL SCREEN WRAPPER ===== */
+        .mm-root {
+          position: fixed;
+          inset: 0;
           display: flex;
           flex-direction: column;
         }
 
-        /* Title */
-        .title-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 2px;
-        }
-        .title {
-          font-family: 'Caveat', cursive;
-          font-size: 2.4rem;
-          font-weight: 700;
-          color: #F4A460;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-        }
-        .title-icon { font-size: 1.4rem; }
-        .divider {
-          height: 2px;
-          background: #F4A460;
-          border-radius: 2px;
-          margin-bottom: 6px;
-          width: 100%;
-        }
-        .tagline {
-          font-family: 'Caveat', cursive;
-          font-size: 1.05rem;
-          color: #8B6914;
-          margin-bottom: 20px;
-        }
-
-        /* Welcome box */
-        .welcome-box {
-          background: repeating-linear-gradient(
-            -45deg,
-            #FFF8E1,
-            #FFF8E1 8px,
-            #FFFDF7 8px,
-            #FFFDF7 16px
-          );
-          border: 2px solid #F4A460;
-          border-radius: 16px;
-          padding: 20px;
-          margin-bottom: 20px;
-          flex: 1;
-        }
-        .welcome-text {
-          font-size: 0.92rem;
-          color: #5C4A1A;
-          line-height: 1.75;
-        }
-        .welcome-text p { margin-bottom: 12px; }
-        .welcome-text p:last-child { margin-bottom: 0; }
-        .welcome-bold {
-          font-family: 'Caveat', cursive;
-          font-size: 1.1rem;
-          font-weight: 700;
-          color: #F4A460;
-          display: block;
-          margin-top: 4px;
-        }
-
-        /* CTA button */
-        .cta-btn {
-          background: #F4A460;
-          color: white;
-          border: none;
-          border-radius: 50px;
-          padding: 14px 28px;
-          font-family: 'Caveat', cursive;
-          font-size: 1.3rem;
-          font-weight: 700;
-          cursor: pointer;
-          width: 100%;
-          transition: transform 0.15s, box-shadow 0.15s;
-          box-shadow: 3px 3px 0px #C17800;
-          letter-spacing: 0.5px;
-          margin-bottom: 8px;
-        }
-        .cta-btn:hover { transform: translateY(-2px); box-shadow: 4px 5px 0px #C17800; }
-        .cta-btn:active { transform: translateY(1px); box-shadow: 1px 1px 0px #C17800; }
-
-        /* Result phase */
-        .food-box {
-          border: 2.5px solid #F4A460;
-          border-radius: 16px;
-          padding: 18px 16px;
-          text-align: center;
-          margin-bottom: 16px;
-          min-height: 70px;
+        /* ===== NAVBAR ===== */
+        .navbar {
+          position: fixed;
+          top: 16px;
+          left: 50%;
+          transform: translateX(-50%);
+          z-index: 100;
+          width: calc(100% - 32px);
+          max-width: 480px;
+          background: rgba(15, 8, 2, 0.72);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          border: 1px solid rgba(212, 160, 23, 0.45);
+          border-radius: 100px;
+          padding: 10px 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: opacity 0.3s;
-        }
-        .food-box.spinning { opacity: 0.4; }
-        .food-name {
-          font-family: 'Caveat', cursive;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #8B6914;
+          box-shadow: 0 4px 32px rgba(212, 160, 23, 0.18), 0 0 0 1px rgba(212,160,23,0.08);
         }
 
+        .navbar-center {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1px;
+          flex: 1;
+          text-align: center;
+        }
+
+        .navbar-title {
+          font-family: 'Cinzel Decorative', cursive;
+          font-size: 1.05rem;
+          font-weight: 700;
+          color: var(--gold-light);
+          letter-spacing: 2px;
+          text-shadow: 0 0 18px var(--gold-glow);
+          line-height: 1.2;
+        }
+
+        .navbar-sub {
+          font-family: 'Lora', serif;
+          font-size: 0.6rem;
+          color: rgba(245, 208, 128, 0.65);
+          font-style: italic;
+          letter-spacing: 1.5px;
+          text-transform: uppercase;
+        }
+
+        .hamburger-btn {
+          position: absolute;
+          right: 16px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 4px;
+          z-index: 101;
+        }
+        .hamburger-btn span {
+          display: block;
+          width: 20px;
+          height: 2px;
+          background: var(--gold-light);
+          border-radius: 2px;
+          transition: all 0.3s ease;
+        }
+        .hamburger-btn.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+        .hamburger-btn.open span:nth-child(2) { opacity: 0; }
+        .hamburger-btn.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+        /* Dropdown menu */
+        .menu-dropdown {
+          position: fixed;
+          top: 80px;
+          right: calc(50% - 240px + 16px);
+          max-width: 200px;
+          width: 180px;
+          background: rgba(15, 8, 2, 0.92);
+          border: 1px solid rgba(212, 160, 23, 0.4);
+          border-radius: 16px;
+          padding: 8px;
+          z-index: 200;
+          backdrop-filter: blur(20px);
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          animation: fadeSlideDown 0.2s ease;
+        }
+        @media (max-width: 512px) {
+          .menu-dropdown { right: 16px; }
+        }
+        .menu-item {
+          display: block;
+          width: 100%;
+          background: none;
+          border: none;
+          color: var(--gold-light);
+          font-family: 'Lora', serif;
+          font-size: 0.88rem;
+          padding: 10px 16px;
+          text-align: left;
+          cursor: pointer;
+          border-radius: 10px;
+          transition: background 0.15s;
+          letter-spacing: 0.5px;
+        }
+        .menu-item:hover { background: rgba(212,160,23,0.12); }
+
+        @keyframes fadeSlideDown {
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== SCREENS ===== */
+        .screen {
+          position: fixed;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-end;
+          padding-bottom: 48px;
+          transition: opacity 0.6s ease;
+        }
+
+        .screen-bg {
+          position: absolute;
+          inset: 0;
+          background-size: cover;
+          background-position: center top;
+          background-repeat: no-repeat;
+          width: 100%;
+          height: 100%;
+        }
+
+        /* ===== WELCOME SCREEN ===== */
+        .welcome-bg { background-image: url('/welcome.webp'); }
+
+        .welcome-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            to top,
+            rgba(10, 5, 1, 0.88) 0%,
+            rgba(10, 5, 1, 0.5) 40%,
+            rgba(10, 5, 1, 0.1) 70%,
+            transparent 100%
+          );
+        }
+
+        .welcome-content {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+          padding: 0 24px;
+          max-width: 420px;
+          width: 100%;
+          text-align: center;
+        }
+
+        .welcome-text {
+          font-family: 'Lora', serif;
+          font-size: 0.9rem;
+          color: rgba(245, 230, 190, 0.88);
+          line-height: 1.8;
+          font-style: italic;
+          text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+        }
+
+        .sparkle-divider {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: var(--gold);
+          font-size: 0.8rem;
+          opacity: 0.7;
+          letter-spacing: 6px;
+        }
+
+        /* ===== CTA BUTTON ===== */
+        .cta-btn {
+          background: linear-gradient(135deg, #D4A017 0%, #F5D080 50%, #D4A017 100%);
+          color: var(--dark);
+          border: none;
+          border-radius: 100px;
+          padding: 15px 36px;
+          font-family: 'Cinzel Decorative', cursive;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          letter-spacing: 1.5px;
+          box-shadow: 0 0 32px rgba(212, 160, 23, 0.6), 0 4px 16px rgba(0,0,0,0.4);
+          transition: transform 0.2s, box-shadow 0.2s;
+          text-transform: uppercase;
+          position: relative;
+          overflow: hidden;
+        }
+        .cta-btn::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+          transform: rotate(45deg) translateX(-100%);
+          transition: transform 0.5s;
+        }
+        .cta-btn:hover::before { transform: rotate(45deg) translateX(100%); }
+        .cta-btn:hover { transform: translateY(-3px); box-shadow: 0 0 48px rgba(212, 160, 23, 0.8), 0 8px 24px rgba(0,0,0,0.4); }
+        .cta-btn:active { transform: translateY(0px); }
+
+        /* ===== THINKING SCREEN ===== */
+        .thinking-bg { background-image: url('/thinking.webp'); }
+        .thinking-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(5, 3, 1, 0.35);
+        }
+        .thinking-content {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
+        }
+        .thinking-text {
+          font-family: 'Cinzel Decorative', cursive;
+          font-size: 0.85rem;
+          color: var(--gold-light);
+          letter-spacing: 3px;
+          text-shadow: 0 0 20px var(--gold-glow);
+          animation: pulse-gold 1.5s ease-in-out infinite;
+        }
+        .thinking-dots {
+          display: flex;
+          gap: 8px;
+        }
+        .thinking-dot {
+          width: 8px;
+          height: 8px;
+          background: var(--gold);
+          border-radius: 50%;
+          animation: dot-bounce 1.2s ease-in-out infinite;
+          box-shadow: 0 0 8px var(--gold-glow);
+        }
+        .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        /* Image float animation */
+        .float-anim {
+          animation: float-gentle 3s ease-in-out infinite;
+        }
+        /* We apply this to the bg via a wrapper trick */
+        .thinking-image-wrap {
+          position: absolute;
+          inset: 0;
+          animation: float-gentle 3s ease-in-out infinite;
+        }
+
+        /* ===== RESULT SCREEN ===== */
+        .result-bg { background-image: url('/result.webp'); }
+        .result-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            to top,
+            rgba(10, 5, 1, 0.92) 0%,
+            rgba(10, 5, 1, 0.55) 45%,
+            rgba(10, 5, 1, 0.15) 75%,
+            transparent 100%
+          );
+        }
+
+        .result-content {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 14px;
+          padding: 0 20px;
+          max-width: 420px;
+          width: 100%;
+        }
+
+        /* Food name card */
+        .food-card {
+          background: rgba(253, 246, 227, 0.1);
+          border: 1px solid rgba(212, 160, 23, 0.5);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-radius: 20px;
+          padding: 18px 28px;
+          text-align: center;
+          width: 100%;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(245,208,128,0.2);
+        }
+        .food-label {
+          font-family: 'Lora', serif;
+          font-size: 0.65rem;
+          color: var(--gold);
+          letter-spacing: 3px;
+          text-transform: uppercase;
+          margin-bottom: 6px;
+          opacity: 0.8;
+        }
+        .food-name {
+          font-family: 'Cinzel Decorative', cursive;
+          font-size: 1.3rem;
+          font-weight: 700;
+          color: var(--gold-light);
+          text-shadow: 0 0 20px var(--gold-glow);
+          line-height: 1.3;
+        }
+
+        /* Action buttons */
         .btn-row {
           display: flex;
           gap: 10px;
-          margin-bottom: 10px;
-          flex-wrap: wrap;
+          width: 100%;
         }
         .btn-suka {
-          background: #F4A460;
-          color: white;
-          border: 2px solid #F4A460;
-          border-radius: 50px;
-          padding: 10px 20px;
+          background: linear-gradient(135deg, #D4A017, #F5D080);
+          color: var(--dark);
+          border: none;
+          border-radius: 100px;
+          padding: 12px 20px;
           font-family: 'Caveat', cursive;
-          font-size: 1.1rem;
+          font-size: 1.05rem;
           font-weight: 700;
           cursor: pointer;
           flex: 1;
           transition: transform 0.15s, box-shadow 0.15s;
-          box-shadow: 2px 2px 0 #C17800;
+          box-shadow: 0 0 20px rgba(212,160,23,0.4);
+          letter-spacing: 0.5px;
         }
-        .btn-suka:hover { transform: translateY(-1px); }
-        .btn-suka:active { transform: translateY(1px); }
+        .btn-suka:hover { transform: translateY(-2px); box-shadow: 0 0 32px rgba(212,160,23,0.7); }
+        .btn-suka:active { transform: translateY(0); }
 
         .btn-outline {
-          background: white;
-          color: #F4A460;
-          border: 2.5px solid #F4A460;
-          border-radius: 50px;
-          padding: 10px 20px;
+          background: rgba(255,255,255,0.07);
+          color: var(--gold-light);
+          border: 1px solid rgba(212,160,23,0.5);
+          backdrop-filter: blur(10px);
+          border-radius: 100px;
+          padding: 12px 20px;
           font-family: 'Caveat', cursive;
-          font-size: 1.1rem;
+          font-size: 1.05rem;
           font-weight: 700;
           cursor: pointer;
           flex: 1;
-          transition: transform 0.15s;
-          box-shadow: 2px 2px 0 #FFE4B5;
-        }
-        .btn-outline:hover { transform: translateY(-1px); background: #FFF8E1; }
-        .btn-outline:active { transform: translateY(1px); }
-
-        .btn-cuba {
-          display: block;
-          width: 100%;
-          background: white;
-          color: #F4A460;
-          border: 2.5px dashed #F4A460;
-          border-radius: 50px;
-          padding: 10px 20px;
-          font-family: 'Caveat', cursive;
-          font-size: 1.1rem;
-          font-weight: 700;
-          cursor: pointer;
-          margin-bottom: 16px;
           transition: transform 0.15s, background 0.15s;
         }
-        .btn-cuba:hover { background: #FFF8E1; transform: translateY(-1px); }
+        .btn-outline:hover { background: rgba(212,160,23,0.12); transform: translateY(-2px); }
+        .btn-outline:active { transform: translateY(0); }
+
+        .btn-cuba {
+          width: 100%;
+          background: rgba(255,255,255,0.05);
+          color: rgba(245,208,128,0.7);
+          border: 1px dashed rgba(212,160,23,0.35);
+          border-radius: 100px;
+          padding: 10px 20px;
+          font-family: 'Caveat', cursive;
+          font-size: 1rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+          letter-spacing: 0.5px;
+        }
+        .btn-cuba:hover { background: rgba(212,160,23,0.1); color: var(--gold-light); }
 
         /* Nasihat box */
-        .nasihat-box {
-          border: 2px solid #F4A460;
-          border-radius: 16px;
-          padding: 18px 16px;
-          flex: 1;
-          background: #FFFDF7;
-          transition: opacity 0.3s;
-          position: relative;
-          min-height: 120px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
+        .nasihat-card {
+          background: rgba(253, 246, 227, 0.08);
+          border: 1px solid rgba(212,160,23,0.3);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-radius: 20px;
+          padding: 16px 20px;
+          width: 100%;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(245,208,128,0.1);
         }
-        .nasihat-box.spinning { opacity: 0.3; }
         .nasihat-title {
-          font-family: 'Caveat', cursive;
-          font-size: 1.15rem;
-          font-weight: 700;
-          color: #F4A460;
+          font-family: 'Cinzel Decorative', cursive;
+          font-size: 0.7rem;
+          color: var(--gold);
+          letter-spacing: 1.5px;
           margin-bottom: 8px;
+          text-shadow: 0 0 12px var(--gold-glow);
         }
         .nasihat-content {
-          font-size: 0.88rem;
-          color: #5C4A1A;
-          line-height: 1.7;
+          font-family: 'Lora', serif;
+          font-size: 0.82rem;
+          color: rgba(245, 230, 190, 0.85);
+          line-height: 1.75;
           font-style: italic;
         }
 
-        /* Footer */
-        .footer {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 6px;
-          margin-top: 14px;
-          font-family: 'Caveat', cursive;
-          font-size: 0.85rem;
-          color: #C4A47C;
+        /* Footer tag */
+        .footer-tag {
+          font-family: 'Lora', serif;
+          font-size: 0.65rem;
+          color: rgba(212,160,23,0.35);
+          letter-spacing: 2px;
+          font-style: italic;
+          margin-top: 4px;
         }
-        .footer-cat { font-size: 1.1rem; }
+
+        /* ===== KEYFRAMES ===== */
+        @keyframes float-gentle {
+          0%, 100% { transform: translateY(0px) scale(1.02); }
+          50% { transform: translateY(-12px) scale(1.04); }
+        }
+
+        @keyframes pulse-gold {
+          0%, 100% { opacity: 0.7; text-shadow: 0 0 12px var(--gold-glow); }
+          50% { opacity: 1; text-shadow: 0 0 28px rgba(212,160,23,0.9); }
+        }
+
+        @keyframes dot-bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+          40% { transform: translateY(-10px); opacity: 1; }
+        }
+
+        @keyframes screen-reveal {
+          from { opacity: 0; transform: scale(1.03); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes content-rise {
+          from { opacity: 0; transform: translateY(24px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .screen-enter { animation: screen-reveal 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .content-enter { animation: content-rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s both; }
 
         /* Confetti */
         .confetti-container {
@@ -325,11 +590,25 @@ export default function Home() {
           100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
         }
 
-        @keyframes spin-in {
-          0%   { transform: scale(0.85) rotate(-2deg); opacity: 0; }
-          100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        /* Star sparkles on CTA */
+        .magic-ring {
+          position: absolute;
+          inset: -4px;
+          border-radius: 100px;
+          border: 1px solid rgba(245,208,128,0.4);
+          animation: ring-pulse 2s ease-in-out infinite;
         }
-        .animate-in { animation: spin-in 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+        @keyframes ring-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.4; }
+          50% { transform: scale(1.04); opacity: 0.8; }
+        }
+
+        /* Overlay tap-to-close */
+        .menu-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 150;
+        }
       `}</style>
 
       {/* Confetti */}
@@ -350,68 +629,115 @@ export default function Home() {
         </div>
       )}
 
-      <div className="card">
-        {/* Header — always visible */}
-        <div className="title-row">
-          <span className="title-icon">🍊</span>
-          <span className="title">Makan Makan</span>
-          <span className="title-icon">🐾</span>
-        </div>
-        <div className="divider" />
-        <div className="tagline">Makanan jasad &amp; makanan jiwa</div>
+      {/* Menu overlay tap-to-close */}
+      {menuOpen && (
+        <div className="menu-overlay" onClick={() => setMenuOpen(false)} />
+      )}
 
-        {phase === 'welcome' && (
-          <>
-            <div className="welcome-box">
-              <div className="welcome-text">
-                <p>MakanMakan diciptakan bukan sekadar untuk mengisi perut yang lapar, tetapi untuk menyuburkan jiwa yang rindu ketenangan.</p>
-                <p>Setiap kali anda menekan butang di atas, anda tidak hanya mendapat cadangan hidangan lazat, tetapi juga sebuah hadiah kecil dari langit — sebuah ingatan manis untuk tersenyum, bersyukur, dan kembali ingat bahawa kita hidup hanya untuk mencintai Dia.</p>
-                <p>Jangan risau tentang rezeki, jangan bandingkan pilihan orang lain. Apa yang terpilih untuk anda hari ini adalah yang terbaik. Tarik nafas, lepaskan beban, dan mari kita makan dengan niat ibadah.</p>
-                <span className="welcome-bold">Makanan Jasad &amp; Makanan Jiwa.<br />Kenyang perut, tenang hati. 🌸</span>
+      {/* Floating Navbar */}
+      <nav className="navbar">
+        <div className="navbar-center">
+          <span className="navbar-title">Makan Makan</span>
+          <span className="navbar-sub">Makanan Jasad &amp; Jiwa</span>
+        </div>
+        <button
+          className={`hamburger-btn ${menuOpen ? 'open' : ''}`}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Menu"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+      </nav>
+
+      {/* Dropdown Menu */}
+      {menuOpen && (
+        <div className="menu-dropdown">
+          <button className="menu-item" onClick={() => setMenuOpen(false)}>
+            ☕ Support Me!
+          </button>
+        </div>
+      )}
+
+      {/* ===== WELCOME SCREEN ===== */}
+      {phase === 'welcome' && (
+        <div className="screen screen-enter">
+          <div className="screen-bg welcome-bg" />
+          <div className="welcome-overlay" />
+          <div className="welcome-content content-enter">
+            <div className="sparkle-divider">✦ ✦ ✦</div>
+            <p className="welcome-text">
+              Makan Makan diciptakan bukan sekadar untuk mengisi jasad yang lapar, tetapi juga untuk jiwa yang memerlukan sajian keinsafan dan kesyukuran.
+            </p>
+            <div style={{ position: 'relative' }}>
+              <div className="magic-ring" />
+              <button className="cta-btn" onClick={handleStart}>
+                🍽️ Tolong, saya tak tahu nak makan apa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== THINKING SCREEN ===== */}
+      {phase === 'thinking' && (
+        <div className="screen screen-enter">
+          <div className="thinking-image-wrap">
+            <div className="screen-bg thinking-bg" />
+          </div>
+          <div className="thinking-overlay" />
+          <div className="thinking-content content-enter" style={{ paddingBottom: '80px' }}>
+            <p className="thinking-text">Sedang mencari...</p>
+            <div className="thinking-dots">
+              <div className="thinking-dot" />
+              <div className="thinking-dot" />
+              <div className="thinking-dot" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== RESULT SCREEN ===== */}
+      {phase === 'result' && (
+        <div className="screen screen-enter">
+          <div className="screen-bg result-bg" />
+          <div className="result-overlay" />
+          <div className="result-content content-enter">
+            {/* Food card */}
+            <div className={`food-card ${isSpinning ? '' : ''}`}>
+              <div className="food-label">✦ Cadangan Hari Ini ✦</div>
+              <div className="food-name">
+                {isSpinning ? '...' : food ?? ''}
               </div>
             </div>
 
-            <button className="cta-btn" onClick={handleStart}>
-              🍽️ TOLONG! Saya tak tahu nak makan apa
-            </button>
-          </>
-        )}
-
-        {phase === 'result' && (
-          <>
-            <div className={`food-box ${isSpinning ? 'spinning' : 'animate-in'}`}>
-              <span className="food-name">
-                {isSpinning ? '...' : food ?? ''}
-              </span>
-            </div>
-
+            {/* Buttons */}
             <div className="btn-row">
               <button className="btn-suka" onClick={handleSukaa}>Saya Suka! 🎉</button>
-              <button className="btn-outline" onClick={handleReshuffle}>Tak Suka! 😅</button>
+              <button className="btn-outline" onClick={handleReshuffle}>Tak Suka 😅</button>
             </div>
-            <button className="btn-cuba" onClick={handleReshuffle}>Cuba lagi! 🔄</button>
+            <button className="btn-cuba" onClick={handleReshuffle}>🔄 Cuba lagi</button>
 
-            <div className={`nasihat-box ${isSpinning ? 'spinning' : 'animate-in'}`}>
-              {reminder && !isSpinning && (
-                <>
-                  <div className="nasihat-title">✨ {reminder.title}</div>
-                  <div className="nasihat-content">{reminder.content}</div>
-                </>
-              )}
-              {isSpinning && (
-                <div className="nasihat-content" style={{ textAlign: 'center', color: '#F4A460' }}>
+            {/* Nasihat */}
+            {reminder && !isSpinning && (
+              <div className="nasihat-card">
+                <div className="nasihat-title">✨ {reminder.title}</div>
+                <div className="nasihat-content">{reminder.content}</div>
+              </div>
+            )}
+            {isSpinning && (
+              <div className="nasihat-card" style={{ textAlign: 'center' }}>
+                <div className="nasihat-content" style={{ color: 'rgba(212,160,23,0.6)' }}>
                   Sedang mencari nasihat... 🌙
                 </div>
-              )}
-            </div>
-          </>
-        )}
+              </div>
+            )}
 
-        <div className="footer">
-          <span className="footer-cat">🐱</span>
-          <span>Fat Calico &amp; Co</span>
+            <div className="footer-tag">🐱 Fat Calico &amp; Co</div>
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
